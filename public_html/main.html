@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+   <title>Google Fitness API</title>
+   <meta charset='utf-8' />
+</head>
+
+<body>
+   <p>Get your step counts using the Google Fitness API.</p>
+
+   <button id="authorize-button" style="display: none;">Authorize</button>
+   <button id="signout-button" style="display: none;">Sign Out</button>
+
+   <div id="content"></div>
+
+   <script type="text/javascript">
+
+      // the API or https://developers.google.com/identity/protocols/googlescopes
+
+      var API_KEY = 'AIzaSyCP78p4EFEbb5jbxNWVFjfyyfxr1iIv_2I';
+      var CLIENT_ID = '887713109803-dbrj59p23c28c9a7h4tejtqs6efp7ujc.apps.googleusercontent.com';
+
+      var scopes = 'https://www.googleapis.com/auth/fitness.activity.read';
+      //var scopes = 'https://www.googleapis.com/auth/fitness.activity.write';
+
+      var auth2;
+      var authorizeButton = document.getElementById('authorize-button');
+      var signoutButton = document.getElementById('signout-button');
+
+      handleClientLoad = () => {
+         gapi.load('client:auth2', initAuth);
+      };
+
+      initAuth = () => {
+         gapi.client.setApiKey(API_KEY);
+
+         gapi.auth2.init({
+            client_id: CLIENT_ID,
+            scope: scopes
+         }).then(() => {
+            auth2 = gapi.auth2.getAuthInstance();
+            auth2.isSignedIn.listen(updateSigninStatus);
+            updateSigninStatus(auth2.isSignedIn.get());
+            authorizeButton.onclick = handleAuthClick;
+            signoutButton.onclick = handleSignoutClick;
+         });
+      }
+
+      updateSigninStatus = (isSignedIn) => {
+
+         if (isSignedIn) {
+            authorizeButton.style.display = 'none';
+            signoutButton.style.display = 'block';
+
+            callFitnessAPI();
+
+         } else {
+            authorizeButton.style.display = 'block';
+            signoutButton.style.display = 'none';
+         }
+      }
+
+      handleAuthClick = (event) => {
+         auth2.signIn();
+      }
+
+      handleSignoutClick = (event) => {
+         auth2.signOut();
+      }
+      
+      nanoseconds = () => {
+
+      }
+
+      callFitnessAPI = () => {
+         // date of a month ago
+         var d = new Date();
+         var m = d.getMonth();
+         d.setMonth(d.getMonth() - 1);
+
+         // if still in same month, set date to last day of 
+         // previous month
+         if (d.getMonth() == m) d.setDate(0);
+
+         gapi.client.load('fitness', 'v1', () => {
+
+            var request = gapi.client.fitness.users.dataSources.datasets.get({
+               userId: 'me',
+               // dataSourceId: 'com.google.step_count.delta',
+               // dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps', // STEPS
+               dataSourceId: 'derived:com.google.weight:com.google.android.gms:merge_weight',
+               // datasetId: d.getTime() + '000000' + new Date().getTime() + '000000',
+               datasetId: '1476092378000000-' + new Date().getTime() + '000000',
+               // datasetId: '1470475368000000000-1471080168000000000',
+               // datasetId: '-',
+            }).execute((resp) => {
+               
+               console.log(resp);
+
+               
+               /* 
+               STEPS (python)
+
+               last_point = dataset["point"][-1]
+               print "Start time:", nanoseconds(int(last_point.get("startTimeNanos", 0)))
+               print "End time:", nanoseconds(int(last_point.get("endTimeNanos", 0)))
+               print "Data type:", last_point.get("dataTypeName", None)
+               print "Steps:", last_point["value"][0].get("intVal", None)
+               */
+              /*
+               STEPS
+
+               var point = resp.point[[resp.point.length - 1]];
+               const start = new Date(point.startTimeNanos / 1000000000); // nanoseconds to miliseconds
+               console.log(start);
+               const end = new Date(point.endTimeNanos / 1000000000); 
+               var steps = point.value[0].intVal;
+               console.log(steps);
+               */
+            });
+
+         });
+
+         console.log(auth2.currentUser.get().getBasicProfile().getGivenName());
+         console.log(auth2.currentUser.get().qc.access_token);
+
+         if (auth2.isSignedIn.get()) {
+            var profile = auth2.currentUser.get().getBasicProfile();
+            console.log('ID: ' + profile.getId());
+            console.log('Full Name: ' + profile.getName());
+            console.log('Given Name: ' + profile.getGivenName());
+            console.log('Family Name: ' + profile.getFamilyName());
+            console.log('Image URL: ' + profile.getImageUrl());
+            console.log('Email: ' + profile.getEmail());
+         }
+
+      }
+
+
+   </script>
+
+   <script src="https://apis.google.com/js/api.js?onload=handleClientLoad"></script>
+
+</body>
+
+</html>
